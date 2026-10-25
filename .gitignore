@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+build/
+dist/
+settings.json
+launch-error.txt
+last_preview.json
+logs/
+screenshot_move_log.jsonl
+screenshot_map.json
