@@ -19,6 +19,11 @@ from sort_screenshots import (
     steam_files,
 )
 
+def _count(n, singular, plural=None):
+    word = singular if n == 1 else (plural or singular + "s")
+    return f"{n} {word}"
+
+
 PAPER = "#f6f3ee"
 RAIL = "#ebe4da"
 INK = "#241f1b"
@@ -52,7 +57,7 @@ class App(tk.Tk):
                 self.iconbitmap(str(icon))
             except tk.TclError:
                 pass
-        self.title("Steam 截圖整理工具")
+        self.title("Steam Screenshot Organizer")
         self.geometry("980x640")
         self.minsize(820, 500)
         self.configure(bg=PAPER)
@@ -135,10 +140,10 @@ class App(tk.Tk):
         rail = ttk.Frame(body, style="Rail.TFrame", width=280)
         rail.pack(side="left", fill="y")
         rail.pack_propagate(False)
-        ttk.Label(rail, text="Steam 截圖整理工具", style="RailTitle.TLabel").pack(anchor="w", padx=16, pady=(18, 16))
+        ttk.Label(rail, text="Steam Screenshot Organizer", style="RailTitle.TLabel").pack(anchor="w", padx=16, pady=(18, 16))
         self.nav_buttons = {}
         self.pages = {}
-        for key, label in (("import", "匯入截圖"), ("sort", "自動分類外部螢幕截圖")):
+        for key, label in (("import", "Import screenshots"), ("sort", "Sort external screenshots")):
             button = ttk.Button(rail, text=label, style="Nav.TButton", command=lambda name=key: self._show_page(name))
             button.pack(fill="x", padx=10, pady=2)
             self.nav_buttons[key] = button
@@ -171,15 +176,15 @@ class App(tk.Tk):
         page = ttk.Frame(self.page_host)
         self.pages["sort"] = page
         form = self._form(page)
-        self._path_row(form, 0, "外部螢幕截圖資料夾", self.shot_var, self._browse_shots)
-        self._path_row(form, 1, "Steam 目錄", self.steam_var, self._browse_steam)
+        self._path_row(form, 0, "External screenshots", self.shot_var, self._browse_shots)
+        self._path_row(form, 1, "Steam folder", self.steam_var, self._browse_steam)
         self.steam_hint = ttk.Label(form, style="Muted.TLabel")
-        self._action_row(page, self.summary_var, "整理", self._move, "preview")
+        self._action_row(page, self.summary_var, "Sort", self._move, "preview")
         columns = ("appid", "name", "files", "folder")
         self.tree = self._table(
             page,
             columns,
-            headings=(("appid", "遊戲編號", False), ("name", "遊戲名稱", False), ("files", "張數", True), ("folder", "資料夾", False)),
+            headings=(("appid", "App ID", False), ("name", "Game", False), ("files", "Files", True), ("folder", "Folder", False)),
             widths={"appid": 110, "files": 70},
             anchors={"files": "e"},
         )
@@ -189,13 +194,13 @@ class App(tk.Tk):
         page = ttk.Frame(self.page_host)
         self.pages["import"] = page
         form = self._form(page)
-        self._path_row(form, 0, "圖片來源", self.import_source_var, self._browse_import_source)
-        self._path_row(form, 1, "遊戲截圖資料夾", self.import_dest_var, self._browse_import_dest)
-        self._action_row(page, self.import_summary_var, "匯入", self._import, "import")
+        self._path_row(form, 0, "Image source", self.import_source_var, self._browse_import_source)
+        self._path_row(form, 1, "Game screenshots", self.import_dest_var, self._browse_import_dest)
+        self._action_row(page, self.import_summary_var, "Import", self._import, "import")
         self.import_tree = self._table(
             page,
             ("name",),
-            headings=(("name", "檔名", False),),
+            headings=(("name", "File", False),),
         )
 
     def _form(self, parent):
@@ -210,7 +215,7 @@ class App(tk.Tk):
         ttk.Label(bar, textvariable=summary, style="Summary.TLabel").pack(side="left")
         action_btn = ttk.Button(bar, text=action, style="Action.TButton", command=command, state="disabled")
         action_btn.pack(side="right")
-        preview = ttk.Button(bar, text="預覽")
+        preview = ttk.Button(bar, text="Preview")
         preview.pack(side="right", padx=(0, 8))
         if kind == "preview":
             self.move_btn = action_btn
@@ -239,29 +244,29 @@ class App(tk.Tk):
     def _path_row(self, form, row, label, variable, command):
         ttk.Label(form, text=label).grid(row=row, column=0, sticky="w", padx=(0, 12), pady=4)
         ttk.Entry(form, textvariable=variable).grid(row=row, column=1, sticky="ew", pady=4)
-        ttk.Button(form, text="瀏覽", command=command).grid(row=row, column=2, padx=(8, 0), pady=4)
+        ttk.Button(form, text="Browse", command=command).grid(row=row, column=2, padx=(8, 0), pady=4)
 
     def _browse_shots(self):
         current = self.shot_var.get().strip()
-        picked = filedialog.askdirectory(title="選擇外部螢幕截圖資料夾", initialdir=current or None)
+        picked = filedialog.askdirectory(title="External screenshots", initialdir=current or None)
         if picked:
             self.shot_var.set(picked)
 
     def _browse_steam(self):
         current = self.steam_var.get().strip()
-        picked = filedialog.askdirectory(title="選擇 Steam 目錄", initialdir=current or None)
+        picked = filedialog.askdirectory(title="Steam folder", initialdir=current or None)
         if picked:
             self.steam_var.set(picked)
 
     def _browse_import_source(self):
         current = self.import_source_var.get().strip()
-        picked = filedialog.askdirectory(title="選擇圖片來源", initialdir=current or None)
+        picked = filedialog.askdirectory(title="Image source", initialdir=current or None)
         if picked:
             self.import_source_var.set(picked)
 
     def _browse_import_dest(self):
         current = self.import_dest_var.get().strip()
-        picked = filedialog.askdirectory(title="選擇遊戲截圖資料夾", initialdir=current or None)
+        picked = filedialog.askdirectory(title="Game screenshots", initialdir=current or None)
         if picked:
             self.import_dest_var.set(picked)
 
@@ -271,7 +276,7 @@ class App(tk.Tk):
         self.plan = None
         self.move_btn.state(["disabled"])
         self._clear_table()
-        self.summary_var.set("請重新預覽")
+        self.summary_var.set("Preview again.")
         self._refresh_steam_hint()
 
     def _import_paths_changed(self, *_args):
@@ -280,17 +285,17 @@ class App(tk.Tk):
         self.import_plan = None
         self.import_btn.state(["disabled"])
         self._clear_tree(self.import_tree)
-        self.import_summary_var.set("請重新預覽")
+        self.import_summary_var.set("Preview again.")
 
     def _refresh_steam_hint(self):
         steam = self.steam_var.get().strip()
         appinfo, _library = steam_files(steam) if steam else (None, None)
         if not steam:
-            text = "未填寫 Steam 目錄，將從登錄檔讀取。"
+            text = "Steam folder is empty. It will be read from the registry."
         elif appinfo:
             text = ""
         else:
-            text = "此目錄沒有遊戲清單，將改查 Steam 商店。"
+            text = "This folder has no game list. Names will be looked up on the Steam store."
         if text:
             self.steam_hint.configure(text=text)
             self.steam_hint.grid(row=2, column=0, columnspan=3, sticky="w", pady=(2, 0))
@@ -338,11 +343,11 @@ class App(tk.Tk):
     def _preview(self):
         root = self.shot_var.get().strip()
         if not root:
-            messagebox.showwarning("未選擇資料夾", "請選擇外部螢幕截圖資料夾。")
+            messagebox.showwarning("No folder selected", "Choose the external screenshots folder.")
             return
         steam = self.steam_var.get().strip() or None
         self._set_busy(True)
-        self.status_var.set("正在預覽…")
+        self.status_var.set("Previewing…")
         threading.Thread(target=self._preview_worker, args=(root, steam), daemon=True).start()
 
     def _preview_worker(self, root, steam):
@@ -352,7 +357,7 @@ class App(tk.Tk):
             self.queue.put(("error", str(exc)))
             return
         except OSError as exc:
-            self.queue.put(("error", f"無法讀取資料夾：{exc}"))
+            self.queue.put(("error", f"Could not read the folder: {exc}"))
             return
         self.queue.put(("preview", plan))
 
@@ -360,19 +365,19 @@ class App(tk.Tk):
         self.plan = plan
         self._clear_table()
         for appid, info in plan["apps"].items():
-            name = info["name"] or "（名稱不明）"
+            name = info["name"] or "Unknown"
             tag = "unknown" if not info["name"] else ""
             self.tree.insert("", "end", values=(appid, name, info["files"], info["folder"]), tags=(tag,))
         games = len(plan["apps"])
         files = plan["files"]
         unknown = len(plan["unknown"])
         if files == 0:
-            self.summary_var.set("沒有符合的檔案")
+            self.summary_var.set("No matching files.")
             self.status_var.set("")
             self.move_btn.state(["disabled"])
         else:
-            extra = f"，{unknown} 個名稱不明" if unknown else ""
-            self.summary_var.set(f"{games} 款遊戲，{files} 張{extra}")
+            extra = f", {_count(unknown, 'unnamed')}" if unknown else ""
+            self.summary_var.set(f"{_count(games, 'game')}, {_count(files, 'file')}{extra}")
             self.status_var.set("")
             self.move_btn.state(["!disabled"])
         save_settings({"screenshots": self.shot_var.get().strip(), "steam": self.steam_var.get().strip()})
@@ -383,25 +388,25 @@ class App(tk.Tk):
         files = self.plan["files"]
         games = len(self.plan["apps"])
         root = self.shot_var.get().strip()
-        if not messagebox.askyesno("整理", f"將 {files} 張圖片移入 {games} 個遊戲資料夾？\n\n{root}"):
+        if not messagebox.askyesno("Sort", f"Move {_count(files, 'file')} into {_count(games, 'game folder', 'game folders')}?\n\n{root}"):
             return
         total = files
         self._set_busy(True, indeterminate=False)
         self.progress.configure(mode="determinate", maximum=max(total, 1), value=0)
-        self.status_var.set("正在移動…")
+        self.status_var.set("Moving…")
         threading.Thread(target=self._move_worker, args=(root, dict(self.plan["apps"]), total), daemon=True).start()
 
     def _move_worker(self, root, apps, total):
         def on_status(message):
             moved = 0
-            if message.startswith("已移動 "):
+            if message.startswith("Moved "):
                 moved = int(message.split()[1])
             self.queue.put(("tick", moved, total, message))
 
         try:
             outcome = move_files(root, apps, new_log_path(), on_status=on_status)
         except OSError as exc:
-            self.queue.put(("error", f"無法移動檔案：{exc}"))
+            self.queue.put(("error", f"Could not move files: {exc}"))
             return
         self.queue.put(("done", outcome))
 
@@ -409,10 +414,10 @@ class App(tk.Tk):
         source = self.import_source_var.get().strip()
         dest = self.import_dest_var.get().strip()
         if not source or not dest:
-            messagebox.showwarning("未選擇資料夾", "請選擇圖片來源與遊戲截圖資料夾。")
+            messagebox.showwarning("No folder selected", "Choose an image source and a game screenshots folder.")
             return
         self._set_busy(True)
-        self.status_var.set("正在預覽…")
+        self.status_var.set("Previewing…")
         threading.Thread(target=self._import_preview_worker, args=(source, dest), daemon=True).start()
 
     def _import_preview_worker(self, source, dest):
@@ -422,7 +427,7 @@ class App(tk.Tk):
             self.queue.put(("error", str(exc)))
             return
         except OSError as exc:
-            self.queue.put(("error", f"無法讀取資料夾：{exc}"))
+            self.queue.put(("error", f"Could not read the folder: {exc}"))
             return
         self.queue.put(("import_preview", plan))
 
@@ -430,15 +435,15 @@ class App(tk.Tk):
         self.import_plan = plan
         self._clear_tree(self.import_tree)
         for row in plan["rows"]:
-            if row["status"] == "將匯入":
+            if row["status"] == "import":
                 self.import_tree.insert("", "end", values=(row["name"],))
         if plan["pending"] == 0:
-            self.import_summary_var.set("沒有可匯入的圖片" if not plan["skipped"] else f"{plan['skipped']} 張已有 _vr.jpg")
+            self.import_summary_var.set("No images to import." if not plan["skipped"] else f"{_count(plan['skipped'], 'file')} already have _vr.jpg.")
             self.status_var.set("")
             self.import_btn.state(["disabled"])
         else:
-            note = "，將刪除不是 JPG 的原檔" if plan["same_folder"] else ""
-            self.import_summary_var.set(f"將匯入 {plan['pending']} 張，略過 {plan['skipped']} 張{note}")
+            note = " Files that are not JPG will be deleted." if plan["same_folder"] else ""
+            self.import_summary_var.set(f"{_count(plan['pending'], 'file')} to import, {_count(plan['skipped'], 'file')} skipped.{note}")
             self.status_var.set("")
             self.import_btn.state(["!disabled"])
         save_settings(
@@ -454,22 +459,23 @@ class App(tk.Tk):
         source = self.import_source_var.get().strip()
         dest = self.import_dest_var.get().strip()
         pending = self.import_plan["pending"]
+        images = _count(pending, "image")
         if self.import_plan["same_folder"]:
-            message = f"將 {pending} 張圖片匯入此資料夾？\n\n轉換完成後，會刪除不是 JPG 的原檔。\n\n{dest}"
+            message = f"Import {images} into this folder?\n\nFiles that are not JPG will be deleted after conversion.\n\n{dest}"
         else:
-            message = f"將 {pending} 張圖片複製到遊戲截圖資料夾？\n\n來源檔案會保留。\n\n{dest}"
-        if not messagebox.askyesno("匯入", message):
+            message = f"Copy {images} to the game screenshots folder?\n\nSource files will be kept.\n\n{dest}"
+        if not messagebox.askyesno("Import", message):
             return
         self._set_busy(True, indeterminate=False)
         self.progress.configure(mode="determinate", maximum=max(pending, 1), value=0)
-        self.status_var.set("正在匯入…")
+        self.status_var.set("Importing…")
         threading.Thread(target=self._import_worker, args=(source, dest, pending), daemon=True).start()
 
     def _import_worker(self, source, dest, total):
         def on_status(message):
             current = 0
             whole = total
-            if message.startswith("正在匯入 "):
+            if message.startswith("Importing "):
                 current_text, whole_text = message.split()[1].split("/")
                 current = int(current_text)
                 whole = int(whole_text)
@@ -481,7 +487,7 @@ class App(tk.Tk):
             self.queue.put(("error", str(exc)))
             return
         except OSError as exc:
-            self.queue.put(("error", f"無法匯入圖片：{exc}"))
+            self.queue.put(("error", f"Could not import images: {exc}"))
             return
         self.queue.put(("import_done", outcome))
 
@@ -520,12 +526,12 @@ class App(tk.Tk):
                     self.plan = None
                     self._set_busy(False)
                     self._clear_table()
-                    parts = [f"已移動 {outcome['moved']} 張"]
+                    parts = [f"Moved {_count(outcome['moved'], 'file')}"]
                     if outcome["skipped"]:
-                        parts.append(f"略過 {outcome['skipped']} 張")
+                        parts.append(f"skipped {_count(outcome['skipped'], 'file')}")
                     if outcome["errors"]:
-                        parts.append(f"失敗 {outcome['errors']} 張")
-                    self.summary_var.set("，".join(parts))
+                        parts.append(f"failed {_count(outcome['errors'], 'file')}")
+                    self.summary_var.set(", ".join(parts) + ".")
                     self.status_var.set("")
                 elif kind == "import_preview":
                     self._set_busy(False)
@@ -535,25 +541,25 @@ class App(tk.Tk):
                     self.import_plan = None
                     self._set_busy(False)
                     self._clear_tree(self.import_tree)
-                    parts = [f"已匯入 {outcome['made']} 張"]
+                    parts = [f"Imported {_count(outcome['made'], 'file')}"]
                     if outcome["skipped"]:
-                        parts.append(f"略過 {outcome['skipped']} 張")
+                        parts.append(f"skipped {_count(outcome['skipped'], 'file')}")
                     if outcome["errors"]:
-                        parts.append(f"失敗 {outcome['errors']} 張")
+                        parts.append(f"failed {_count(outcome['errors'], 'file')}")
                     if outcome["same_folder"]:
-                        parts.append("已刪除不是 JPG 的原檔")
-                    self.import_summary_var.set("，".join(parts))
+                        parts.append("files that were not JPG were deleted")
+                    self.import_summary_var.set(", ".join(parts) + ".")
                     self.status_var.set("")
                 elif kind == "error":
                     self._set_busy(False)
                     self.status_var.set(event[1])
-                    messagebox.showerror("錯誤", event[1])
+                    messagebox.showerror("Error", event[1])
         except queue.Empty:
             pass
         self.after(80, self._poll)
 
     def _close(self):
-        if self.busy and not messagebox.askokcancel("作業進行中", "作業尚未完成。關閉後會停在目前進度。"):
+        if self.busy and not messagebox.askokcancel("Work in progress", "This is not finished. Closing stops at the current progress."):
             return
         save_settings(
             {
@@ -579,7 +585,7 @@ def run():
         try:
             root = tk.Tk()
             root.withdraw()
-            messagebox.showerror("Steam 截圖整理工具", "程式無法啟動。\n\n" + detail[-800:])
+            messagebox.showerror("Steam Screenshot Organizer", "The program could not start.\n\n" + detail[-800:])
             root.destroy()
         except Exception:
             pass

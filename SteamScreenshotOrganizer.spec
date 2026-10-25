@@ -28,7 +28,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='Steam截圖整理工具',
+    name='SteamScreenshotOrganizer',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

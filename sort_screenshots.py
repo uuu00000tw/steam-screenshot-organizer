@@ -153,7 +153,7 @@ def names_from_appinfo(appinfo, wanted):
     data = Path(appinfo).read_bytes()
     magic = int.from_bytes(data[0:4], "little")
     if magic != 0x07564429:
-        raise SorterError("無法讀取 Steam 遊戲清單")
+        raise SorterError("Could not read the Steam game list.")
     table_off = int.from_bytes(data[8:16], "little")
     strings = read_string_table(data, table_off)
     found = {}
@@ -201,9 +201,9 @@ def names_from_store(appids, on_status=None):
     net_errors = 0
     for index, appid in enumerate(appids, 1):
         if on_status:
-            on_status(f"正在查詢 Steam 商店 {index}/{len(appids)}")
+            on_status(f"Checking the Steam store {index}/{len(appids)}")
         url = f"https://store.steampowered.com/api/appdetails?appids={appid}&filters=basic"
-        req = urllib.request.Request(url, headers={"User-Agent": "screenshot-sorter"})
+        req = urllib.request.Request(url, headers={"User-Agent": "steam-screenshot-organizer"})
         try:
             with urllib.request.urlopen(req, timeout=8) as resp:
                 payload = json.loads(resp.read().decode("utf-8"))
@@ -253,19 +253,19 @@ def folder_for(appid, raw_name, taken):
 def resolve(root, steam=None, on_status=None):
     root = Path(root)
     if not root.is_dir():
-        raise SorterError("找不到外部螢幕截圖資料夾")
+        raise SorterError("External screenshots folder was not found.")
 
     def status(message):
         if on_status:
             on_status(message)
 
-    status("正在掃描")
+    status("Scanning")
     counts = collect_loose(root)
     wanted = set(counts)
     names = {}
     appinfo, library = steam_files(steam)
     if appinfo:
-        status("正在讀取遊戲名稱")
+        status("Reading game names")
         names.update(names_from_appinfo(appinfo, wanted))
     if library:
         manifests = names_from_manifests(library)
@@ -322,7 +322,7 @@ def move_files(root, apps, log_path, on_status=None):
                 entry.rename(dest)
                 moved += 1
                 if on_status and (moved % 200 == 0 or moved == total):
-                    on_status(f"已移動 {moved} / {total}")
+                    on_status(f"Moved {moved} / {total}")
                 log.write(json.dumps({"src": str(entry), "dest": str(dest)}, ensure_ascii=False) + "\n")
             except OSError as exc:
                 errors += 1
@@ -343,10 +343,10 @@ def main(argv=None):
         run()
         return 0
 
-    parser = argparse.ArgumentParser(description="Steam 截圖整理工具")
-    parser.add_argument("--root", help="外部螢幕截圖資料夾")
-    parser.add_argument("--steam", help="Steam 目錄")
-    parser.add_argument("--move", action="store_true", help="移動檔案")
+    parser = argparse.ArgumentParser(description="Steam Screenshot Organizer")
+    parser.add_argument("--root", help="External screenshots folder")
+    parser.add_argument("--steam", help="Steam folder")
+    parser.add_argument("--move", action="store_true", help="Move files")
     args = parser.parse_args(argv)
 
     settings = load_settings()

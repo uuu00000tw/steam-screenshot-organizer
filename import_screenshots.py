@@ -45,9 +45,9 @@ def _check_dirs(source, dest):
     source = Path(source)
     dest = Path(dest)
     if not source.is_dir():
-        raise SorterError("找不到圖片來源")
+        raise SorterError("Image source was not found.")
     if not dest.is_dir():
-        raise SorterError("找不到遊戲截圖資料夾")
+        raise SorterError("Game screenshots folder was not found.")
     return source, dest, source.resolve() == dest.resolve()
 
 
@@ -56,8 +56,8 @@ def preview_import(source, dest):
     rows = []
     pending = skipped = 0
     for stem, paths in _groups(source).items():
-        status = "已有 _vr.jpg" if (dest / f"{stem}_vr.jpg").exists() else "將匯入"
-        if status == "已有 _vr.jpg":
+        status = "skip" if (dest / f"{stem}_vr.jpg").exists() else "import"
+        if status == "skip":
             skipped += len(paths)
         else:
             pending += len(paths)
@@ -80,7 +80,7 @@ def import_images(source, dest, on_status=None):
     for stem, paths in groups:
         done += 1
         if on_status:
-            on_status(f"正在匯入 {done}/{total}")
+            on_status(f"Importing {done}/{total}")
         jpg_path = dest / f"{stem}.jpg"
         vr_path = dest / f"{stem}_vr.jpg"
         master = next((path for path in paths if path.suffix.lower() in {".jpg", ".jpeg"}), paths[0])
